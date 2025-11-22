@@ -6,13 +6,13 @@ function SG() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://18.208.201.41:5000/analyzer/sg")
+    fetch("http://localhost:5000/analyzer/sg")
       .then((res) => res.json())
       .then((result) => {
         setData(result);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError("Failed to fetch SG analytics");
         setLoading(false);
       });
@@ -31,9 +31,37 @@ function SG() {
           <h2 className="text-xl font-semibold">{sg.group_name}</h2>
           <p className="text-gray-600 mb-2">Group ID: {sg.group_id}</p>
 
+          {/* Inbound rules */}
           <h3 className="font-semibold mt-2">Inbound Rules:</h3>
           {sg.inbound_rules.length === 0 ? (
             <p>No inbound rules</p>
           ) : (
             <ul className="list-disc ml-6">
-              {sg.inbound_r_
+              {sg.inbound_rules.map((rule, i) => (
+                <li key={i}>
+                  {rule.cidr} → {rule.protocol} ({rule.from_port} - {rule.to_port})
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Outbound rules */}
+          <h3 className="font-semibold mt-2">Outbound Rules:</h3>
+          {sg.outbound_rules.length === 0 ? (
+            <p>No outbound rules</p>
+          ) : (
+            <ul className="list-disc ml-6">
+              {sg.outbound_rules.map((rule, i) => (
+                <li key={i}>
+                  {rule.cidr} → {rule.protocol} ({rule.from_port} - {rule.to_port})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default SG;
