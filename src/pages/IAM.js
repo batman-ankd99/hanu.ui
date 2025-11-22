@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 
 export default function IAM() {
-
   const [iamData, setIamData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,56 +17,58 @@ export default function IAM() {
       });
   }, []);
 
-  if (loading) return <p className="text-lg p-4">Loading IAM Analytics...</p>;
+  if (loading) return <p className="p-4 text-lg">Loading IAM Analytics...</p>;
 
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">IAM Policy Analysis</h1>
 
       {iamData.length === 0 ? (
-        <p className="text-red-500 text-lg">No risky IAM policies found.</p>
+        <p className="text-lg text-red-500">No risky IAM policies found.</p>
       ) : (
         <div className="space-y-6">
-          {iamData.map((iam, idx) => (
-            <div
-              key={idx}
-              className="border rounded-lg shadow p-4 bg-white"
-            >
-              <h2 className="text-xl font-semibold mb-2">
-                Policy ID: {iam.id}
-              </h2>
+          {iamData.map((iam, idx) => {
+            // Parse attached entities
+            let attached = {};
+            try {
+              attached = JSON.parse(iam.attached_entities);
+            } catch (err) {
+              console.error("Invalid attached_entities JSON:", err);
+            }
 
-              <p className="mb-1">
-                <strong>Effect:</strong> {iam.effect}
-              </p>
+            return (
+              <div
+                key={idx}
+                className="bg-white border rounded-lg shadow p-4"
+              >
+                <h2 className="text-xl font-semibold mb-2">
+                  Policy: {iam.policy_name}
+                </h2>
 
-              <p className="mb-1">
-                <strong>Principal:</strong>{" "}
-                {typeof iam.principal === "object"
-                  ? JSON.stringify(iam.principal, null, 2)
-                  : iam.principal}
-              </p>
+                <p><strong>Policy ID:</strong> {iam.id}</p>
+                <p><strong>Effect:</strong> {iam.effect}</p>
+                <p><strong>Principal:</strong> {iam.principal || "None"}</p>
 
-              <div className="mb-2">
-                <strong>Actions:</strong>
-                <ul className="list-disc ml-6">
-                  {Array.isArray(iam.actions) ? (
-                    iam.actions.map((action, i) => (
+                <div className="mt-3">
+                  <strong>Actions:</strong>
+                  <ul className="ml-6 list-disc">
+                    {iam.actions?.map((action, i) => (
                       <li key={i}>{action}</li>
-                    ))
-                  ) : (
-                    <li>{iam.actions}</li>
-                  )}
-                </ul>
-              </div>
+                    ))}
+                  </ul>
+                </div>
 
-              {iam.resource && (
-                <p className="mb-1">
-                  <strong>Resource:</strong> {iam.resource}
-                </p>
-              )}
-            </div>
-          ))}
+                <div className="mt-3">
+                  <strong>Attached To:</strong>
+                  <div className="mt-2 bg-gray-100 p-3 rounded">
+                    <p><strong>Users:</strong> {attached.Users?.join(", ") || "None"}</p>
+                    <p><strong>Groups:</strong> {attached.Groups?.join(", ") || "None"}</p>
+                    <p><strong>Roles:</strong> {attached.Roles?.join(", ") || "None"}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
