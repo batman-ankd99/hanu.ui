@@ -1,22 +1,39 @@
 import React, { useEffect, useState } from "react";
 
-export default function SG() {
+function SG() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("http://18.208.201.41:5000/analyzer/sg")
-      .then(res => res.json())
-      .then(data => setData(data));
+      .then((res) => res.json())
+      .then((result) => {
+        setData(result);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError("Failed to fetch SG analytics");
+        setLoading(false);
+      });
   }, []);
 
-  if (!data) return <p className="text-gray-500">Loading...</p>;
+  if (loading) return <div className="p-5">Loading SG analytics...</div>;
+  if (error) return <div className="p-5 text-red-600">{error}</div>;
 
   return (
-    <div className="mt-4">
-      <h1 className="text-2xl font-bold">Security Group Risks</h1>
-      <pre className="bg-black text-green-400 p-4 rounded mt-2 overflow-auto">
-        {JSON.stringify(data, null, 2)}
-      </pre>
-    </div>
-  );
-}
+    <div className="p-5">
+      <h1 className="text-2xl font-bold mb-4">Security Group Analytics</h1>
+      <p className="mb-4">Total Risky SG Records: {data.count}</p>
+
+      {data.records.map((sg, index) => (
+        <div key={index} className="border p-4 mb-4 rounded-lg shadow">
+          <h2 className="text-xl font-semibold">{sg.group_name}</h2>
+          <p className="text-gray-600 mb-2">Group ID: {sg.group_id}</p>
+
+          <h3 className="font-semibold mt-2">Inbound Rules:</h3>
+          {sg.inbound_rules.length === 0 ? (
+            <p>No inbound rules</p>
+          ) : (
+            <ul className="list-disc ml-6">
+              {sg.inbound_r_
