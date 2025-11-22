@@ -4,7 +4,7 @@ export default function S3() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/analyzer/s3")
+    fetch("http://18.208.201.41:5000/analyzer/s3")
       .then(res => res.json())
       .then(data => setData(data));
   }, []);

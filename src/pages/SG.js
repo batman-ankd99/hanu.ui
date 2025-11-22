@@ -4,7 +4,7 @@ export default function SG() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/analyzer/sg")
+    fetch("http://18.208.201.41:5000/analyzer/sg")
       .then(res => res.json())
       .then(data => setData(data));
   }, []);
