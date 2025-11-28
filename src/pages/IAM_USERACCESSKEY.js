@@ -5,7 +5,7 @@ export default function IAMAccessKeys() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://18.208.201.41:5000/analyzer/iam_useraccesskey")
+    fetch("http://44.222.86.59:5000/analyzer/iam_useraccesskey")
       .then((res) => res.json())
       .then((data) => {
         setIamKeys(data.records || []);
