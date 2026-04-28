@@ -47,17 +47,24 @@ function SG() {
       <div className="mb-6 p-4 border rounded bg-gray-50">
         <h2 className="text-xl font-semibold mb-2">Security Findings</h2>
 
-        {findings.length === 0 ? (
+        {/* SAFE FIX APPLIED HERE */}
+        {findings.filter(f =>
+          String(f.resource_id || "").includes("sg")
+        ).length === 0 ? (
           <p>No security issues found</p>
         ) : (
-          findings.map((f, i) => (
-            <div key={i} className="border p-2 mb-2 rounded">
-              <p><b>Rule:</b> {f.rule_id}</p>
-              <p><b>Severity:</b> {f.severity}</p>
-              <p><b>Description:</b> {f.description}</p>
-              <p><b>Resource:</b> {f.resource_id}</p>
-            </div>
-          ))
+          findings
+            .filter(f =>
+              String(f.resource_id || "").includes("sg")
+            )
+            .map((f, i) => (
+              <div key={i} className="border p-2 mb-2 rounded">
+                <p><b>Rule:</b> {f.rule_id}</p>
+                <p><b>Severity:</b> {f.severity}</p>
+                <p><b>Description:</b> {f.description}</p>
+                <p><b>Resource:</b> {f.resource_id}</p>
+              </div>
+            ))
         )}
       </div>
 

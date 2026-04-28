@@ -30,11 +30,16 @@ export default function S3() {
       <div className="mt-4 p-4 border rounded bg-gray-50">
         <h2 className="text-xl font-semibold mb-2">Security Findings</h2>
 
-        {findings.filter(f => f.resource_id?.includes("s3")).length === 0 ? (
+        {/* SAFE FIX APPLIED HERE */}
+        {findings.filter(f =>
+          String(f.resource_id || "").includes("s3")
+        ).length === 0 ? (
           <p>No S3 security issues found</p>
         ) : (
           findings
-            .filter(f => f.resource_id?.includes("s3"))
+            .filter(f =>
+              String(f.resource_id || "").includes("s3")
+            )
             .map((f, idx) => (
               <div key={idx} className="border p-2 mb-2 rounded">
                 <p><b>Rule:</b> {f.rule_id}</p>
