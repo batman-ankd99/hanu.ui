@@ -1,60 +1,66 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { getFindings } from "../api/api";
 
 export default function S3() {
-  const [data, setData] = useState(null);
+
   const [findings, setFindings] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      const res = await getFindings();
+      setFindings(res.data.findings || []);
+
+    } catch (err) {
+      console.error("S3 load failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-
-    // ---------------- S3 ANALYZER ----------------
-    fetch("http://32.196.114.165:5000/analyzer/s3")
-      .then(res => res.json())
-      .then(data => setData(data));
-
-    // ---------------- FINDINGS API ----------------
-    fetch("http://32.196.114.165:5000/findings")
-      .then(res => res.json())
-      .then(data => setFindings(data.findings || []))
-      .catch(() => {});
-
+    loadData();
   }, []);
 
-  if (!data) return <p>Loading...</p>;
+  // filter only S3-related findings
+  const s3Findings = findings.filter(f =>
+    f.service === "s3" || f.resource_type === "s3_bucket"
+  );
 
   return (
-    <div className="mt-4">
+    <div className="p-6">
 
-      <h1 className="text-2xl font-bold">S3 Bucket Risks</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        S3 Security Findings
+      </h1>
 
-      {/* ---------------- PRISMA STYLE FINDINGS ---------------- */}
-      <div className="mt-4 p-4 border rounded bg-gray-50">
-        <h2 className="text-xl font-semibold mb-2">Security Findings</h2>
+      {loading ? (
+        <p>Loading...</p>
+      ) : s3Findings.length === 0 ? (
+        <p className="text-green-500">
+          No S3 security issues found
+        </p>
+      ) : (
+        <div className="space-y-3">
 
-        {/* SAFE FIX APPLIED HERE */}
-        {findings.filter(f =>
-          String(f.resource_id || "").includes("s3")
-        ).length === 0 ? (
-          <p>No S3 security issues found</p>
-        ) : (
-          findings
-            .filter(f =>
-              String(f.resource_id || "").includes("s3")
-            )
-            .map((f, idx) => (
-              <div key={idx} className="border p-2 mb-2 rounded">
-                <p><b>Rule:</b> {f.rule_id}</p>
-                <p><b>Severity:</b> {f.severity}</p>
-                <p><b>Description:</b> {f.description}</p>
-                <p><b>Resource:</b> {f.resource_id}</p>
-              </div>
-            ))
-        )}
-      </div>
+          {s3Findings.map((f, idx) => (
+            <div
+              key={idx}
+              className="p-4 bg-gray-900 text-white rounded border-l-4 border-yellow-500"
+            >
+              <p><b>Severity:</b> {f.severity}</p>
+              <p><b>Finding:</b> {f.finding}</p>
+              <p><b>Resource:</b> {f.resource_id}</p>
+              <p className="text-gray-400 mt-1">
+                {f.recommendation}
+              </p>
+            </div>
+          ))}
 
-      {/* ---------------- RAW DATA ---------------- */}
-      <pre className="bg-black text-green-400 p-4 rounded mt-4">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+        </div>
+      )}
 
     </div>
   );
