@@ -15,6 +15,9 @@ function Card({ title, value, color }) {
 }
 
 export default function Dashboard() {
+
+  const [view, setView] = useState("dashboard");
+
   const [summary, setSummary] = useState({
     CRITICAL: 0,
     HIGH: 0,
@@ -25,8 +28,6 @@ export default function Dashboard() {
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
-
-  // PCI STATE (safe optional feature)
   const [pci, setPci] = useState(null);
 
   // ---------------- LOAD DATA ----------------
@@ -36,9 +37,6 @@ export default function Dashboard() {
 
       const s = await getSummary();
       const f = await getFindings();
-
-      console.log("SUMMARY API:", s.data);
-      console.log("FINDINGS API:", f.data);
 
       setSummary(
         s.data?.risk_summary || {
@@ -51,57 +49,40 @@ export default function Dashboard() {
 
       setFindings(f.data?.findings || []);
 
-      // ---------------- PCI (NON-BLOCKING SAFE CALL) ----------------
+      // PCI optional
       try {
         const pciRes = await fetch("http://localhost:5000/pci-summary");
-
-        if (pciRes.ok) {
-          const pciData = await pciRes.json();
-          setPci(pciData);
-        } else {
-          setPci(null);
-        }
-      } catch (err) {
-        console.warn("PCI endpoint not available:", err);
+        setPci(pciRes.ok ? await pciRes.json() : null);
+      } catch {
         setPci(null);
       }
 
     } catch (err) {
-      console.error("Dashboard load failed:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- RUN SCAN ----------------
+  // ---------------- SCAN ----------------
   const handleScan = async () => {
     try {
       setScanning(true);
       await runScan();
       await loadData();
-    } catch (err) {
-      console.error("Scan failed:", err);
     } finally {
       setScanning(false);
     }
   };
 
-  // ---------------- CSV DOWNLOAD ----------------
+  // ---------------- CSV ----------------
   const downloadCSV = () => {
-    if (!findings.length) {
-      alert("No findings to export");
-      return;
-    }
+    if (!findings.length) return;
 
     let csv = "Severity,Finding,Resource\n";
 
     findings.forEach((f) => {
-      const row = [
-        f.severity || "",
-        `"${(f.finding || "").replace(/"/g, '""')}"`,
-        f.resource_id || "",
-      ];
-      csv += row.join(",") + "\n";
+      csv += `${f.severity},"${(f.finding || "").replace(/"/g, '""')}",${f.resource_id}\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -115,7 +96,15 @@ export default function Dashboard() {
     window.URL.revokeObjectURL(url);
   };
 
-  // ---------------- INIT ----------------
+  // ---------------- FILTER ----------------
+  const filteredFindings = () => {
+    if (view === "dashboard") return findings;
+    if (view === "sg") return findings.filter(f => f.resource_type === "sg");
+    if (view === "iam") return findings.filter(f => f.resource_type === "iam_policy");
+    if (view === "keys") return findings.filter(f => f.resource_type === "iam_mfa");
+    return findings;
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -123,31 +112,62 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-gray-950 text-white">
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
       <div className="w-60 bg-gray-900 p-4">
+
         <h2 className="text-xl font-bold">Cloud Audit</h2>
-        <p className="text-gray-400 mt-2">Security Dashboard</p>
+
+        <div className="mt-6 flex flex-col gap-2">
+
+          <button
+            onClick={() => setView("dashboard")}
+            className={`text-left p-2 rounded ${view === "dashboard" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+          >
+            📊 Dashboard
+          </button>
+
+          <button
+            onClick={() => setView("sg")}
+            className={`text-left p-2 rounded ${view === "sg" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+          >
+            🔐 Security Groups
+          </button>
+
+          <button
+            onClick={() => setView("iam")}
+            className={`text-left p-2 rounded ${view === "iam" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+          >
+            👤 IAM Policies
+          </button>
+
+          <button
+            onClick={() => setView("keys")}
+            className={`text-left p-2 rounded ${view === "keys" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+          >
+            🔑 IAM Access Keys
+          </button>
+
+        </div>
       </div>
 
-      {/* Main */}
+      {/* MAIN */}
       <div className="flex-1 p-6">
 
-        {/* Header */}
+        {/* HEADER */}
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl font-bold">{view.toUpperCase()}</h1>
 
           <div className="flex gap-2">
             <button
               onClick={downloadCSV}
-              className="bg-green-600 px-4 py-2 rounded disabled:opacity-50"
-              disabled={!findings.length}
+              className="bg-green-600 px-4 py-2 rounded"
             >
               Download CSV
             </button>
 
             <button
               onClick={handleScan}
-              className="bg-blue-600 px-4 py-2 rounded disabled:opacity-50"
+              className="bg-blue-600 px-4 py-2 rounded"
               disabled={scanning}
             >
               {scanning ? "Scanning..." : "Run Scan"}
@@ -155,30 +175,32 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Summary */}
-        <div className="grid grid-cols-4 gap-4 mt-6">
-          <Card title="CRITICAL" value={summary.CRITICAL} color="red" />
-          <Card title="HIGH" value={summary.HIGH} color="orange" />
-          <Card title="MEDIUM" value={summary.MEDIUM} color="yellow" />
-          <Card title="LOW" value={summary.LOW} color="green" />
-        </div>
+        {/* SUMMARY */}
+        {view === "dashboard" && (
+          <div className="grid grid-cols-4 gap-4 mt-6">
 
-        {/* PCI COMPLIANCE (SAFE UI BLOCK) */}
-        <div className="mt-6 p-4 bg-purple-900 rounded border-l-4 border-purple-500">
-          <h3 className="text-gray-300 text-lg font-bold">
-            PCI Compliance
-          </h3>
+            <Card title="CRITICAL" value={summary.CRITICAL} color="red" />
 
-          <p className="text-2xl font-bold mt-1">
-            {pci?.pci_score ?? 0} / 100
-          </p>
+            {/* 🔥 ORANGE FIX HERE */}
+            <Card title="HIGH" value={summary.HIGH} color="orange" />
 
-          <p className="text-sm text-gray-300">
-            Status: {pci?.compliance_status ?? "UNKNOWN"}
-          </p>
-        </div>
+            <Card title="MEDIUM" value={summary.MEDIUM} color="yellow" />
+            <Card title="LOW" value={summary.LOW} color="green" />
+          </div>
+        )}
 
-        {/* Findings */}
+        {/* PCI */}
+        {view === "dashboard" && (
+          <div className="mt-6 p-4 bg-purple-900 rounded border-l-4 border-purple-500">
+            <h3 className="text-lg font-bold">PCI Compliance</h3>
+            <p className="text-2xl font-bold mt-1">
+              {pci?.pci_score ?? 0} / 100
+            </p>
+            <p>Status: {pci?.compliance_status ?? "UNKNOWN"}</p>
+          </div>
+        )}
+
+        {/* FINDINGS TABLE */}
         <div className="mt-8">
 
           <h2 className="text-xl mb-2">
@@ -186,6 +208,7 @@ export default function Dashboard() {
           </h2>
 
           <table className="w-full text-left bg-gray-900 rounded">
+
             <thead>
               <tr className="text-gray-400">
                 <th className="p-2">Severity</th>
@@ -196,7 +219,7 @@ export default function Dashboard() {
 
             <tbody>
 
-              {findings.length === 0 && !loading && (
+              {filteredFindings().length === 0 && !loading && (
                 <tr>
                   <td colSpan="3" className="p-4 text-center text-gray-400">
                     No findings available
@@ -204,7 +227,7 @@ export default function Dashboard() {
                 </tr>
               )}
 
-              {findings.map((f, i) => (
+              {filteredFindings().map((f, i) => (
                 <tr key={i} className="border-t border-gray-800">
                   <td className="p-2">{f.severity}</td>
                   <td>{f.finding}</td>
@@ -213,6 +236,7 @@ export default function Dashboard() {
               ))}
 
             </tbody>
+
           </table>
 
         </div>
