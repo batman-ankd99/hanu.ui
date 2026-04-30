@@ -4,7 +4,10 @@ import { getSummary, getFindings, runScan } from "../api/api";
 // ---------------- CARD COMPONENT ----------------
 function Card({ title, value, color }) {
   return (
-    <div className="p-4 bg-gray-900 rounded border-l-4" style={{ borderColor: color }}>
+    <div
+      className="p-4 bg-gray-900 rounded border-l-4"
+      style={{ borderColor: color }}
+    >
       <h3 className="text-gray-400">{title}</h3>
       <p className="text-2xl font-bold">{value ?? 0}</p>
     </div>
@@ -12,17 +15,19 @@ function Card({ title, value, color }) {
 }
 
 export default function Dashboard() {
-
   const [summary, setSummary] = useState({
     CRITICAL: 0,
     HIGH: 0,
     MEDIUM: 0,
-    LOW: 0
+    LOW: 0,
   });
 
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
+
+  // 🔥 PCI STATE ADDED
+  const [pci, setPci] = useState(null);
 
   // ---------------- LOAD DATA ----------------
   const loadData = async () => {
@@ -32,17 +37,25 @@ export default function Dashboard() {
       const s = await getSummary();
       const f = await getFindings();
 
+      // PCI API CALL
+      const pciRes = await fetch("http://localhost:5000/pci-summary");
+      const pciData = await pciRes.json();
+
       console.log("SUMMARY API:", s.data);
       console.log("FINDINGS API:", f.data);
+      console.log("PCI API:", pciData);
 
-      setSummary(s.data?.risk_summary || {
-        CRITICAL: 0,
-        HIGH: 0,
-        MEDIUM: 0,
-        LOW: 0
-      });
+      setSummary(
+        s.data?.risk_summary || {
+          CRITICAL: 0,
+          HIGH: 0,
+          MEDIUM: 0,
+          LOW: 0,
+        }
+      );
 
       setFindings(f.data?.findings || []);
+      setPci(pciData);
 
     } catch (err) {
       console.error("Dashboard load failed:", err);
@@ -66,26 +79,22 @@ export default function Dashboard() {
 
   // ---------------- CSV DOWNLOAD ----------------
   const downloadCSV = () => {
-
     if (!findings.length) {
       alert("No findings to export");
       return;
     }
 
-    // header
     let csv = "Severity,Finding,Resource\n";
 
-    // rows
-    findings.forEach(f => {
+    findings.forEach((f) => {
       const row = [
         f.severity || "",
         `"${(f.finding || "").replace(/"/g, '""')}"`,
-        f.resource_id || ""
+        f.resource_id || "",
       ];
       csv += row.join(",") + "\n";
     });
 
-    // create file
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
 
@@ -139,12 +148,23 @@ export default function Dashboard() {
 
         {/* Summary */}
         <div className="grid grid-cols-4 gap-4 mt-6">
-
           <Card title="CRITICAL" value={summary.CRITICAL} color="red" />
           <Card title="HIGH" value={summary.HIGH} color="orange" />
           <Card title="MEDIUM" value={summary.MEDIUM} color="yellow" />
           <Card title="LOW" value={summary.LOW} color="green" />
+        </div>
 
+        {/* 🔥 PCI COMPLIANCE SECTION */}
+        <div className="mt-6 p-4 bg-purple-900 rounded border-l-4 border-purple-500">
+          <h3 className="text-gray-300 text-lg font-bold">PCI Compliance</h3>
+
+          <p className="text-2xl font-bold mt-1">
+            {pci?.pci_score ?? 0} / 100
+          </p>
+
+          <p className="text-sm text-gray-300">
+            Status: {pci?.compliance_status ?? "UNKNOWN"}
+          </p>
         </div>
 
         {/* Findings */}
@@ -164,7 +184,6 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
-
               {findings.length === 0 && !loading && (
                 <tr>
                   <td colSpan="3" className="p-4 text-center text-gray-400">
@@ -180,7 +199,6 @@ export default function Dashboard() {
                   <td>{f.resource_id}</td>
                 </tr>
               ))}
-
             </tbody>
           </table>
 
