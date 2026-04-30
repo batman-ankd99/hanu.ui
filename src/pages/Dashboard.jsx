@@ -32,11 +32,9 @@ export default function Dashboard() {
       const s = await getSummary();
       const f = await getFindings();
 
-      // 🔥 DEBUG (remove later)
       console.log("SUMMARY API:", s.data);
       console.log("FINDINGS API:", f.data);
 
-      // ✅ FIX (important)
       setSummary(s.data?.risk_summary || {
         CRITICAL: 0,
         HIGH: 0,
@@ -66,6 +64,39 @@ export default function Dashboard() {
     }
   };
 
+  // ---------------- CSV DOWNLOAD ----------------
+  const downloadCSV = () => {
+
+    if (!findings.length) {
+      alert("No findings to export");
+      return;
+    }
+
+    // header
+    let csv = "Severity,Finding,Resource\n";
+
+    // rows
+    findings.forEach(f => {
+      const row = [
+        f.severity || "",
+        `"${(f.finding || "").replace(/"/g, '""')}"`,
+        f.resource_id || ""
+      ];
+      csv += row.join(",") + "\n";
+    });
+
+    // create file
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "vulnerabilities.csv";
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+  };
+
   // ---------------- INIT ----------------
   useEffect(() => {
     loadData();
@@ -87,13 +118,23 @@ export default function Dashboard() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Dashboard</h1>
 
-          <button
-            onClick={handleScan}
-            className="bg-blue-600 px-4 py-2 rounded disabled:opacity-50"
-            disabled={scanning}
-          >
-            {scanning ? "Scanning..." : "Run Scan"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={downloadCSV}
+              className="bg-green-600 px-4 py-2 rounded disabled:opacity-50"
+              disabled={!findings.length}
+            >
+              Download CSV
+            </button>
+
+            <button
+              onClick={handleScan}
+              className="bg-blue-600 px-4 py-2 rounded disabled:opacity-50"
+              disabled={scanning}
+            >
+              {scanning ? "Scanning..." : "Run Scan"}
+            </button>
+          </div>
         </div>
 
         {/* Summary */}
@@ -124,7 +165,6 @@ export default function Dashboard() {
 
             <tbody>
 
-              {/* ✅ EMPTY STATE FIX */}
               {findings.length === 0 && !loading && (
                 <tr>
                   <td colSpan="3" className="p-4 text-center text-gray-400">
