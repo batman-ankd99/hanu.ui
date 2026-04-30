@@ -1,7 +1,50 @@
 import axios from "axios";
 
+// 🔥 IMPORTANT: change this if frontend is NOT on same machine
 const API = "http://localhost:5000";
+// Example for EC2 / server:
+// const API = "http://10.0.6.175:5000";
 
-export const getSummary = () => axios.get(`${API}/risk-summary`);
-export const getFindings = () => axios.get(`${API}/findings`);
-export const runScan = () => axios.post(`${API}/scan`);
+const client = axios.create({
+  baseURL: API,
+  headers: {
+    "Content-Type": "application/json"
+  },
+  timeout: 10000
+});
+
+// ---------------- SUMMARY ----------------
+export const getSummary = async () => {
+  try {
+    const res = await client.get("/risk-summary");
+    console.log("API /risk-summary:", res.data);   // 🔍 debug
+    return res;
+  } catch (err) {
+    console.error("getSummary failed:", err);
+    throw err;
+  }
+};
+
+// ---------------- FINDINGS ----------------
+export const getFindings = async () => {
+  try {
+    const res = await client.get("/findings");
+    console.log("API /findings:", res.data);   // 🔍 debug
+    return res;
+  } catch (err) {
+    console.error("getFindings failed:", err);
+    throw err;
+  }
+};
+
+// ---------------- RUN SCAN ----------------
+export const runScan = async () => {
+  try {
+    const res = await client.post("/scan");
+    console.log("API /scan:", res.data);   // 🔍 debug
+    return res;
+  } catch (err) {
+    console.error("runScan failed:", err);
+    throw err;
+  }
+};

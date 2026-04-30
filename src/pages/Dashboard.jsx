@@ -13,11 +13,18 @@ function Card({ title, value, color }) {
 
 export default function Dashboard() {
 
-  const [summary, setSummary] = useState({});
+  const [summary, setSummary] = useState({
+    CRITICAL: 0,
+    HIGH: 0,
+    MEDIUM: 0,
+    LOW: 0
+  });
+
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
 
+  // ---------------- LOAD DATA ----------------
   const loadData = async () => {
     try {
       setLoading(true);
@@ -25,8 +32,19 @@ export default function Dashboard() {
       const s = await getSummary();
       const f = await getFindings();
 
-      setSummary(s.data.risk_summary || {});
-      setFindings(f.data.findings || []);
+      // 🔥 DEBUG (remove later)
+      console.log("SUMMARY API:", s.data);
+      console.log("FINDINGS API:", f.data);
+
+      // ✅ FIX (important)
+      setSummary(s.data?.risk_summary || {
+        CRITICAL: 0,
+        HIGH: 0,
+        MEDIUM: 0,
+        LOW: 0
+      });
+
+      setFindings(f.data?.findings || []);
 
     } catch (err) {
       console.error("Dashboard load failed:", err);
@@ -35,6 +53,7 @@ export default function Dashboard() {
     }
   };
 
+  // ---------------- RUN SCAN ----------------
   const handleScan = async () => {
     try {
       setScanning(true);
@@ -47,6 +66,7 @@ export default function Dashboard() {
     }
   };
 
+  // ---------------- INIT ----------------
   useEffect(() => {
     loadData();
   }, []);
@@ -103,6 +123,16 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
+
+              {/* ✅ EMPTY STATE FIX */}
+              {findings.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="3" className="p-4 text-center text-gray-400">
+                    No findings available
+                  </td>
+                </tr>
+              )}
+
               {findings.map((f, i) => (
                 <tr key={i} className="border-t border-gray-800">
                   <td className="p-2">{f.severity}</td>
@@ -110,6 +140,7 @@ export default function Dashboard() {
                   <td>{f.resource_id}</td>
                 </tr>
               ))}
+
             </tbody>
           </table>
 
