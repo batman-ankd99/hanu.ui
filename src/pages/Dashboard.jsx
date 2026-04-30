@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
 
-  // 🔥 PCI STATE ADDED
+  // PCI STATE (safe optional feature)
   const [pci, setPci] = useState(null);
 
   // ---------------- LOAD DATA ----------------
@@ -37,13 +37,8 @@ export default function Dashboard() {
       const s = await getSummary();
       const f = await getFindings();
 
-      // PCI API CALL
-      const pciRes = await fetch("http://localhost:5000/pci-summary");
-      const pciData = await pciRes.json();
-
       console.log("SUMMARY API:", s.data);
       console.log("FINDINGS API:", f.data);
-      console.log("PCI API:", pciData);
 
       setSummary(
         s.data?.risk_summary || {
@@ -55,7 +50,21 @@ export default function Dashboard() {
       );
 
       setFindings(f.data?.findings || []);
-      setPci(pciData);
+
+      // ---------------- PCI (NON-BLOCKING SAFE CALL) ----------------
+      try {
+        const pciRes = await fetch("http://localhost:5000/pci-summary");
+
+        if (pciRes.ok) {
+          const pciData = await pciRes.json();
+          setPci(pciData);
+        } else {
+          setPci(null);
+        }
+      } catch (err) {
+        console.warn("PCI endpoint not available:", err);
+        setPci(null);
+      }
 
     } catch (err) {
       console.error("Dashboard load failed:", err);
@@ -154,9 +163,11 @@ export default function Dashboard() {
           <Card title="LOW" value={summary.LOW} color="green" />
         </div>
 
-        {/* 🔥 PCI COMPLIANCE SECTION */}
+        {/* PCI COMPLIANCE (SAFE UI BLOCK) */}
         <div className="mt-6 p-4 bg-purple-900 rounded border-l-4 border-purple-500">
-          <h3 className="text-gray-300 text-lg font-bold">PCI Compliance</h3>
+          <h3 className="text-gray-300 text-lg font-bold">
+            PCI Compliance
+          </h3>
 
           <p className="text-2xl font-bold mt-1">
             {pci?.pci_score ?? 0} / 100
@@ -184,6 +195,7 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
+
               {findings.length === 0 && !loading && (
                 <tr>
                   <td colSpan="3" className="p-4 text-center text-gray-400">
@@ -199,6 +211,7 @@ export default function Dashboard() {
                   <td>{f.resource_id}</td>
                 </tr>
               ))}
+
             </tbody>
           </table>
 
