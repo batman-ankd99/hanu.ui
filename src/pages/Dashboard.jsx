@@ -196,7 +196,7 @@ export default function Dashboard() {
             <p className="text-2xl font-bold mt-1">
               {pci?.pci_score ?? 0} / 100
             </p>
-            <p>Status: {pci?.compliance_status ?? "UNKNOWN"}</p>
+            <p>Status: {pci?.compliance_status ?? "Coming Soon .... In Progress"}</p>
           </div>
         )}
 
