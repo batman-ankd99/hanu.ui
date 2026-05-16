@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 🔥 IMPORTANT: change this if frontend is NOT on same machine
-const API = "http://34.239.240.234:5000";
+const API = "http://3.239.28.57:5000";
 // Example for EC2 / server:
 // const API = "http://10.0.6.175:5000";
 
